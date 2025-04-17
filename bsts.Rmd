@@ -1,0 +1,69 @@
+---
+title: "ML project"
+author: "Emily Ortega"
+date: "2025-04-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+# Load libraries
+library(bsts)
+library(dplyr)
+library(ggplot2)
+
+# Load data
+data <- read.csv("C:/Users/emily/Downloads/final_model_dataset_with_features.csv")
+
+# Drop rows with missing values
+data <- na.omit(data)
+
+# Check which states have enough data (e.g., at least 24 months)
+state_counts <- data %>% group_by(state) %>% tally()
+valid_states <- state_counts %>% filter(n >= 24) %>% pull(state)
+
+# Loop through states
+for (st in valid_states) {
+  cat("\n Fitting model for state:", st, "\n")
+  
+  # Subset state data
+  state_df <- data %>% filter(state == st)
+  
+  # Create time series index (monthly assumed)
+  state_df <- state_df %>% arrange(year, month)
+  state_df$ds <- as.Date(paste(state_df$year, state_df$month, "01", sep = "-"))
+
+  # Response variable
+  y <- state_df$cases
+
+  # Drop non-predictor columns
+  predictors <- state_df %>%
+    select(-cases, -state, -year, -month, -ds)
+
+  # Scale predictors (BSTS likes centered predictors)
+  predictors_scaled <- scale(predictors)
+
+  # Set up BSTS model components
+  ss <- AddLocalLinearTrend(list(), y)
+  
+  # Fit the model
+  model <- bsts(y ~ ., 
+                state.specification = ss,
+                data = data.frame(y = y, predictors_scaled),
+                niter = 1000)
+  
+
+
+
+}  
+ # Print summary
+  print(summary(model))
+  
+  
+  
+```
